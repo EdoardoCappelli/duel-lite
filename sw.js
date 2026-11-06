@@ -1,6 +1,6 @@
 // App shell cache: network first (so updates show up immediately), cache only when offline.
 // Card images rely on the browser HTTP cache (31 days).
-const V = 'duellite-v13';
+const V = 'duellite-v14';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', e => {

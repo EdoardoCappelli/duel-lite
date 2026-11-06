@@ -476,7 +476,10 @@ function renderPrompt() {
   switch (m.type) {
     case T.SELECT_IDLECMD: {
       const row = (arr, verb, action) => arr.map((c, i) => cardBtn(push(() => reply({ type: R.SELECT_IDLECMD, action, index: i })), c, `${verb}: ${verb === 'Attiva' ? effect(c) : name(c.code)}`)).join('');
-      let h = row(m.activates, 'Attiva', I.SELECT_ACTIVATE) + row(m.summons, 'Evoca', I.SELECT_SUMMON) + row(m.special_summons, 'Special Summon', I.SELECT_SPECIAL_SUMMON) + row(m.monster_sets, 'Set', I.SELECT_MONSTER_SET) + row(m.spell_sets, 'Set', I.SELECT_SPELL_SET) + row(m.pos_changes, 'Cambia posizione', I.SELECT_POS_CHANGE);
+      // the engine lists only what is legal right now: say so, or an Extra Deck monster just looks missing
+      const stuck = sim.core.duelQueryCount(sim.h, m.player, L.EXTRA) > 0 && !m.special_summons.some(c => c.location === L.EXTRA);
+      const extraNote = stuck ? '<div class="note">Nessun mostro dell\'Extra Deck si può Evocare ora: di solito mancano i materiali sul campo. Tocca "Extra" e poi la carta per leggere cosa richiede.</div>' : '';
+      let h = extraNote + row(m.special_summons, 'Special Summon', I.SELECT_SPECIAL_SUMMON) + row(m.activates, 'Attiva', I.SELECT_ACTIVATE) + row(m.summons, 'Evoca', I.SELECT_SUMMON) + row(m.monster_sets, 'Set', I.SELECT_MONSTER_SET) + row(m.spell_sets, 'Set', I.SELECT_SPELL_SET) + row(m.pos_changes, 'Cambia posizione', I.SELECT_POS_CHANGE);
       if (m.to_bp) h += textBtn(push(() => reply({ type: R.SELECT_IDLECMD, action: I.TO_BP, index: null })), 'Vai alla Battle Phase');
       if (m.to_ep) h += textBtn(push(() => reply({ type: R.SELECT_IDLECMD, action: I.TO_EP, index: null })), 'Vai alla End Phase');
       return ask('Main Phase: cosa puoi fare', h, H);
