@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<title>Verifica mosse</title>
+<style>
+:root{--bg:#0b0e14;--panel:#151a24;--panel2:#1d2431;--line:#2a3344;--txt:#e6e9ef;--mut:#8a94a7;--acc:#f2b84b;--me:#4ea1ff;--op:#ff6b6b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:calc(10px + env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom));max-width:560px;margin:auto}
+h1{font-size:20px;margin:0}h1 b{color:var(--acc)}
+h3{font-size:13px;margin:12px 0 6px;color:var(--mut)}
+a{color:var(--acc)}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer}
+button.pri{background:var(--acc);color:#1a1205;border-color:var(--acc);font-weight:600}
+button:disabled{opacity:.45}
+input,select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%}
+input{user-select:text;-webkit-user-select:text}
+select{-webkit-appearance:none;appearance:none}
+summary{font-size:11px;color:var(--mut);margin:8px 0 3px;cursor:pointer}
+.mut{color:var(--mut)}.sm{font-size:12px}
+.top{display:flex;align-items:center;gap:8px}.top h1{flex:1}
+#close{padding:6px 12px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
+.row{display:flex;gap:8px;align-items:center}
+.wrap{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:3px 4px 3px 9px;font-size:12px;max-width:100%}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip button{padding:1px 6px;border:0;background:none;color:var(--mut)}
+.chip button.pos{color:var(--acc);font-size:11px}
+.chip.hid{border-style:dashed;border-color:var(--acc)}
+.chip.on{background:#3a2e12}
+.res button{display:block;width:100%;text-align:left;margin-top:4px;padding:7px 10px}
+.z{font-size:11px;color:var(--mut);margin:8px 0 3px}
+.err{color:var(--op);font-size:12px;white-space:pre-wrap;user-select:text;-webkit-user-select:text}
+.note{color:var(--acc);font-size:12px}
+/* board */
+.board{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.side{border:1px solid var(--line);border-radius:10px;padding:6px}
+.side.turn{border-color:var(--acc)}
+.side h4{margin:0 0 5px;font-size:12px;display:flex;justify-content:space-between}
+.side h4 .lp{font-size:14px;font-variant-numeric:tabular-nums}
+.p0 .lp{color:var(--me)}.p1 .lp{color:var(--op)}
+.grid{--w:calc((min(100vw,560px) - 38px - 6 * 3px) / 7);display:grid;grid-template-columns:repeat(7,var(--w));gap:3px}
+.slot{height:calc(var(--w) * 1.46);border:1px solid #232b3a;border-radius:4px;position:relative;display:flex;align-items:center;justify-content:center}
+.slot.emz{border-style:dashed}.slot.fz{border-color:#2f4a3a}
+.c{border-radius:3px;background:#222 center/cover no-repeat;width:100%;height:100%;padding:0;border:0;display:block;position:relative}
+.c.def{transform:rotate(90deg) scale(.68)}
+.c.fd{outline:2px dashed #8fb3ff;outline-offset:-2px;filter:brightness(.6)}
+.val{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:9px;font-weight:700;font-style:normal;background:#000b;color:#fff;font-variant-numeric:tabular-nums;border-radius:0 0 3px 3px;pointer-events:none}
+.ov{position:absolute;right:0;top:0;background:#7a4dff;color:#fff;font-size:9px;font-weight:700;font-style:normal;padding:0 3px;border-radius:0 3px 0 3px;pointer-events:none}
+.hand{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;align-items:center}
+.hand .c{width:34px;height:50px}
+.lbl{font-size:10px;color:var(--mut);width:100%}
+.piles{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.piles button{padding:3px 8px;font-size:11px;border-radius:12px}
+.piles button.on{border-color:var(--acc)}
+.piles .cnt{font-size:11px;color:var(--mut);padding:3px 4px}
+/* prompt */
+#prompt{position:sticky;bottom:0;background:var(--panel);border:1px solid var(--acc);border-radius:12px;padding:10px;margin-top:10px;z-index:2}
+#prompt .q{font-weight:600;margin-bottom:6px}
+#prompt .who{font-size:11px;font-weight:700}
+.acts{display:flex;flex-direction:column;gap:5px;max-height:44vh;overflow:auto}
+.acts button{text-align:left;display:flex;gap:8px;align-items:center;padding:6px 8px;flex:none}
+.acts button img{width:27px;height:39px;border-radius:2px;object-fit:cover;flex:none;background:var(--panel2)}
+.acts button.on{border-color:var(--acc);background:#3a2e12}
+.acts button.pri{justify-content:center}
+.stp{display:flex;align-items:center;gap:8px;padding:4px 0}
+.stp img{width:27px;height:39px;border-radius:2px;object-fit:cover;flex:none}
+.stp span{flex:1;min-width:0}
+.stp button{padding:4px 12px}
+.log{font-size:12px;max-height:30vh;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.log div{padding:1px 0;border-bottom:1px solid #1a2130}
+.log .neg{color:var(--op);font-weight:600}
+/* card detail */
+#detail{position:fixed;inset:0;background:#000c;display:none;z-index:10;align-items:center;justify-content:center;padding:14px}
+#detail.on{display:flex}
+#detail>div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;max-width:380px;width:100%;max-height:90vh;overflow:auto}
+#detail img{display:block;width:60%;max-width:220px;margin:0 auto 8px;border-radius:6px;background:var(--panel2);aspect-ratio:59/86}
+#detail .desc{white-space:pre-wrap;font-size:12px;margin-top:6px;user-select:text;-webkit-user-select:text}
+</style>
+</head>
+<body>
+<div class="top"><h1>Verifica <b>mosse</b></h1><button id="close" hidden>✕ Chiudi</button></div>
+<div class="mut sm">Le regole le applica il motore di EDOPro (Project Ignis): giochi tu per entrambi i giocatori. Il duello in corso non viene toccato.</div>
+
+<section id="setup">
+  <div class="row" style="margin-top:10px">
+    <button id="demo" style="flex:1">Esempio: Pot of Greed vs Ash</button>
+    <button id="imp" style="flex:1">Importa dall'ultimo duello</button>
+  </div>
+  <div class="box">
+    <div id="assign" class="note" hidden></div>
+    <div class="row" id="where">
+      <select id="who" style="flex:1"><option value="p0">Giocatore di turno</option><option value="p1">Avversario</option></select>
+      <select id="zone" style="flex:1"><option value="hand">Mano</option><option value="m">Mostri</option><option value="s">Magie/Trappole</option><option value="gy">Cimitero</option><option value="ban">Banditi</option><option value="deck">Deck</option><option value="ex">Extra</option></select>
+    </div>
+    <input id="q" placeholder="Cerca una carta e toccala per aggiungerla" autocomplete="off" style="margin-top:8px">
+    <div class="res" id="res"></div>
+  </div>
+  <div id="pos"></div>
+  <button class="pri" id="go" style="width:100%;margin-top:12px">Avvia la verifica</button>
+  <div id="stat" class="mut sm" style="margin-top:8px"></div>
+</section>
+
+<section id="sim" hidden>
+  <div class="board" id="board"></div>
+  <div id="prompt"></div>
+  <div class="row" style="margin-top:8px"><button id="undo" style="flex:1">↶ Indietro</button><button id="back" style="flex:1">Cambia posizione</button></div>
+  <h3>Cosa è successo</h3>
+  <div class="log" id="log"></div>
+  <div id="diag" class="mut sm" style="margin-top:10px"></div>
+</section>
+<div class="mut sm" style="margin-top:16px">Motore: <a href="https://github.com/edo9300/ygopro-core" target="_blank" rel="noopener">ygopro-core</a>, script di <a href="https://github.com/ProjectIgnis/CardScripts" target="_blank" rel="noopener">Project Ignis</a> (AGPL-3.0). Non è un arbitro ufficiale: gli script li scrive la community e gli effetti applicati prima della posizione non vengono contati. <a id="src" href="#" target="_blank" rel="noopener">Codice sorgente di questa app</a>.</div>
+<div id="detail"><div id="detailBox"></div></div>
+
+<script>
+addEventListener('error', e => { const el = document.getElementById('stat'); if (el && !window.labStarted) { el.className = 'err'; el.textContent = 'La pagina non parte: ' + e.message + ' ' + (e.filename || '') + ':' + (e.lineno || ''); } });
+setTimeout(() => { const el = document.getElementById('stat'); if (el && !window.labStarted) { el.className = 'err'; el.textContent = 'La pagina non si è avviata dopo 15 secondi. Ricaricala.'; } }, 15000);
+</script>
+<script type="module">
+window.labStarted = true;
+import { trace, Scripts, Sim, COMMON, scriptNames, loadCore, MsgType as T, cardName, cardData, effectText, freePlaces } from './engine.js';
+import { OcgResponseType as R, SelectIdleCMDAction as I, SelectBattleCMDAction as B, OcgLocation as L, OcgPosition as P, OcgRace, OcgAttribute, ocgPositionParse, ocgRaceParse, ocgAttributeParse, cardMatchesOpcode } from './vendor/index.js';
+
+const SOURCE_URL = 'https://github.com/EdoardoCappelli/duel-lite';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const IMG = id => `https://images.ygoprodeck.com/images/cards_small/${id}.jpg`;
+const IMGL = id => `https://images.ygoprodeck.com/images/cards/${id}.jpg`;
+const API = 'https://db.ygoprodeck.com/api/v7/cardinfo.php';
+const FILLER = 89631139; // placeholder deck so nobody loses by decking out
+const ZN = { hand: 'Mano', m: 'Mostri', s: 'Magie/Trappole', gy: 'Cimitero', ban: 'Banditi', deck: 'Deck', ex: 'Extra' };
+const POS = [[P.FACEUP_ATTACK, 'ATK'], [P.FACEUP_DEFENSE, 'DEF'], [P.FACEDOWN_DEFENSE, 'Coperto']];
+const STPOS = [[P.FACEDOWN_DEFENSE, 'Coperta'], [P.FACEUP_ATTACK, 'Scoperta']];
+const params = new URLSearchParams(location.search), embedded = params.get('embed') === '1';
+
+let cards = null, core = null, scripts = null, sim = null, history = [], cur = null, multi = [], usedFiller = [], assign = null;
+const expanded = new Set(); // piles opened on the board
+const openLists = new Set(); // deck lists opened in the position builder
+const timing = {};
+const empty = () => ({ hand: [], m: [], s: [], gy: [], ban: [], deck: [], ex: [] });
+let pos = { p0: empty(), p1: empty() };
+const name = id => cardName(cards, id);
+$('#src').href = SOURCE_URL;
+if (embedded) { $('#close').hidden = false; $('#close').onclick = () => parent.postMessage('lab-close', location.origin); }
+
+/* ---------- loading: everything is fetched only when this page is opened ---------- */
+async function loadAll() {
+  const t0 = performance.now();
+  cards = await (await fetch('cards.json')).json();
+  timing.cards = performance.now() - t0;
+  // insecure pages (the Wi-Fi test server) have no Cache API; a new cache each month picks up script updates
+  const month = new Date().toISOString().slice(0, 7), cachePromise = self.caches ? caches.open('lab-scripts-' + month).catch(() => null) : null;
+  scripts = new Scripts({
+    store: cachePromise && {
+      get: async n => { const r = await (await cachePromise)?.match('/lab-script/' + n); return r ? r.text() : undefined; },
+      put: async (n, t) => (await cachePromise)?.put('/lab-script/' + n, new Response(t)),
+    },
+    syncFetch: url => { const x = new XMLHttpRequest(); x.open('GET', url, false); x.send(); return x.status === 200 ? x.responseText : null; },
+  });
+  // asked for by the engine but they don't exist upstream
+  scripts.mem.set('c0.lua', null); scripts.mem.set('proc_unofficial.lua', null);
+  const t1 = performance.now();
+  await scripts.preload(COMMON);
+  timing.common = performance.now() - t1;
+  const t2 = performance.now();
+  core = await loadCore();
+  timing.wasm = performance.now() - t2;
+}
+
+/* full report of a failure: some engine errors are not Error objects and have no message */
+function report(where, e) {
+  let extra = ''; try { extra = JSON.stringify(e, Object.getOwnPropertyNames(Object(e))); } catch {}
+  const lines = [`Passo: ${where} / ${trace.step}`, `Tipo: ${typeof e} ${e?.constructor?.name ?? ''}`, `Valore: ${String(e)}`, `Dettagli: ${extra}`,
+    `Stack: ${String(e?.stack ?? '').split('\n').slice(0, 5).join(' < ')}`, `Avvisi: ${trace.log.slice(-5).join(' | ')}`, `Script mancanti: ${scripts ? [...scripts.missing].join(', ') : ''}`, navigator.userAgent];
+  const el = $('#stat'); el.className = 'err'; el.textContent = lines.join('\n');
+  $('#setup').hidden = false; $('#sim').hidden = true;
+}
+addEventListener('error', e => report('errore pagina', e.error ?? e.message));
+addEventListener('unhandledrejection', e => report('promessa', e.reason));
+
+/* ---------- position builder ---------- */
+const entry = c => typeof c === 'object' ? c : { id: c };
+function renderPos() {
+  const chip = (p, z, c, i) => {
+    const o = entry(c), opts = z === 'm' ? POS : z === 's' ? STPOS : null, selected = assign && assign.p === p && assign.z === z && assign.i === i;
+    if (!o.id) return `<span class="chip hid${selected ? ' on' : ''}"><span>${z === 'hand' ? 'Carta in mano' : 'Carta coperta'} ?</span><button class="pos" data-p="${p}" data-z="${z}" data-i="${i}" data-act="assign">Scegli</button><button data-p="${p}" data-z="${z}" data-i="${i}" data-act="del">✕</button></span>`;
+    const lbl = opts && (opts.find(x => x[0] === o.pos) || opts[0])[1];
+    return `<span class="chip"><span>${esc(name(o.id))}${o.mats?.length ? ` +${o.mats.length}` : ''}</span>${opts ? `<button class="pos" data-p="${p}" data-z="${z}" data-i="${i}" data-act="pos">${lbl}</button>` : ''}<button data-p="${p}" data-z="${z}" data-i="${i}" data-act="del">✕</button></span>`;
+  };
+  $('#pos').innerHTML = [['p0', 'Giocatore di turno'], ['p1', 'Avversario']].map(([p, t]) => `<div class="box"><b>${t}</b>${Object.keys(ZN).filter(z => pos[p][z].length).map(z => {
+    const list = `<div class="wrap">${pos[p][z].map((c, i) => chip(p, z, c, i)).join('')}</div>`;
+    // whole decks are long: closed until needed, and kept open while editing
+    if (z === 'deck' || z === 'ex') return `<details data-k="${p}${z}"${openLists.has(p + z) ? ' open' : ''}><summary>${ZN[z]} · ${pos[p][z].length}</summary>${list}</details>`;
+    return `<div class="z">${ZN[z]} · ${pos[p][z].length}</div>${list}`;
+  }).join('') || '<div class="mut sm" style="margin-top:4px">Vuoto</div>'}</div>`).join('');
+  const a = $('#assign'); a.hidden = !assign; $('#where').hidden = !!assign;
+  if (assign) a.textContent = 'Cerca la carta da mettere al posto di quella nascosta.';
+}
+$('#pos').addEventListener('toggle', e => { const k = e.target.dataset?.k; if (k) { if (e.target.open) openLists.add(k); else openLists.delete(k); } }, true);
+$('#pos').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const arr = pos[b.dataset.p][b.dataset.z], i = +b.dataset.i;
+  if (b.dataset.act === 'del') { arr.splice(i, 1); assign = null; }
+  else if (b.dataset.act === 'assign') { assign = { p: b.dataset.p, z: b.dataset.z, i }; $('#q').focus(); }
+  else {
+    const opts = b.dataset.z === 'm' ? POS : STPOS, o = entry(arr[i]);
+    const k = opts.findIndex(x => x[0] === o.pos);
+    o.pos = opts[(Math.max(k, 0) + 1) % opts.length][0]; arr[i] = o;
+  }
+  renderPos();
+});
+function searchCards(q, accept = () => true, limit = 12) {
+  q = q.trim().toLowerCase();
+  if (q.length < 2) return [];
+  const hits = [];
+  for (const id in cards) { if (cards[id][0] || !cards[id][8].toLowerCase().includes(q) || !accept(+id)) continue; hits.push(+id); if (hits.length >= limit) break; }
+  return hits;
+}
+$('#q').addEventListener('input', e => {
+  if (!cards) return;
+  const hits = searchCards(e.target.value);
+  $('#res').innerHTML = hits.map(id => `<button data-add="${id}">${esc(cards[id][8])}</button>`).join('') || (e.target.value.trim().length < 2 ? '' : '<div class="mut sm">Nessun risultato</div>');
+});
+$('#res').addEventListener('click', e => {
+  const b = e.target.closest('[data-add]'); if (!b) return;
+  const id = +b.dataset.add;
+  if (assign) {
+    const arr = pos[assign.p][assign.z], o = entry(arr[assign.i]);
+    arr[assign.i] = { ...o, id };
+    assign = null; $('#q').value = ''; $('#res').innerHTML = '';
+  } else {
+    const z = $('#zone').value;
+    pos[$('#who').value][z].push(z === 'm' || z === 's' ? { id, pos: (z === 'm' ? POS : STPOS)[0][0] } : id);
+  }
+  renderPos();
+});
+$('#demo').onclick = () => { assign = null; pos = { p0: { ...empty(), hand: [55144522] }, p1: { ...empty(), hand: [14558127] } }; renderPos(); };
+
+/* the duel saved by Duel Lite on this device; the player whose turn it is becomes "di turno".
+   The opponent's hidden cards become placeholders the player can fill in. */
+function importDuel() {
+  let d; try { d = JSON.parse(localStorage.getItem('dl.duel')); } catch {}
+  if (!d?.S) { $('#stat').textContent = 'Nessun duello salvato su questo telefono.'; return false; }
+  const left = { tokens: 0, counters: 0 };
+  const known = c => c && c.id > 0 && cards[c.id];
+  const ids = a => (a || []).filter(known).map(c => c.id);
+  const conv = s => {
+    const out = empty(); if (!s) return out;
+    const field = (c, seq, zone, posOf) => {
+      if (!c) return;
+      if (c.c) left.counters++;
+      if (c.tk) { left.tokens++; return; }
+      if (c.id === 0) { out[zone].push({ id: 0, seq, pos: P.FACEDOWN_DEFENSE }); return; }
+      if (known(c)) out[zone].push({ id: c.id, seq, pos: posOf(c), mats: ids(c.mats), borrowed: !!c.bor });
+    };
+    const mPos = c => !c.up ? P.FACEDOWN_DEFENSE : c.def ? P.FACEUP_DEFENSE : P.FACEUP_ATTACK, sPos = c => c.up ? P.FACEUP_ATTACK : P.FACEDOWN_DEFENSE;
+    out.hand = (s.hand || []).map(c => known(c) ? c.id : { id: 0 });
+    out.gy = ids(s.gy); out.ban = ids(s.ban); out.ex = ids(s.ex);
+    out.deck = Array.isArray(s.deck) ? ids(s.deck) : [];
+    (s.m || []).forEach((c, i) => field(c, i, 'm', mPos));
+    (s.emz || []).forEach((c, i) => field(c, 5 + i, 'm', mPos));
+    (s.st || []).forEach((c, i) => field(c, i, 's', sPos));
+    field(s.fz, 5, 's', sPos);
+    out.lp = s.lp;
+    return out;
+  };
+  const a = conv(d.S), b = conv(d.O);
+  pos = d.who === 'op' ? { p0: b, p1: a } : { p0: a, p1: b };
+  assign = null;
+  const hid = Object.keys(ZN).flatMap(z => [...a[z], ...b[z]]).filter(c => !entry(c).id).length;
+  const notes = [];
+  if (hid) notes.push(`${hid} carte nascoste dell'avversario: tocca "Scegli" per dire cosa potrebbero essere, altrimenti restano fuori`);
+  if (!Array.isArray(d.O?.deck)) notes.push('il Deck avversario non si conosce: aggiungilo se conta');
+  if (left.tokens) notes.push(`${left.tokens} token non importati`);
+  if (left.counters) notes.push('i segnalini non vengono importati');
+  notes.push('Equip ed effetti già applicati non contano');
+  $('#stat').className = 'note'; $('#stat').textContent = 'Duello importato. ' + notes.join('; ') + '.';
+  renderPos();
+  return true;
+}
+$('#imp').onclick = importDuel;
+
+/* ---------- running ---------- */
+function simPos() {
+  usedFiller = [];
+  const side = (p, who) => {
+    const out = { ...p }; Object.keys(ZN).forEach(z => { out[z] = p[z].filter(c => entry(c).id); });
+    if (!out.deck.length) { out.deck = Array(10).fill(FILLER); usedFiller.push(who); }
+    return out;
+  };
+  return { p0: side(pos.p0, 'giocatore di turno'), p1: side(pos.p1, 'avversario') };
+}
+$('#go').onclick = async () => {
+  const b = $('#go'); b.disabled = true; b.textContent = 'Scarico gli script delle carte…';
+  try {
+    const t = performance.now();
+    trace.step = 'script carte';
+    await scripts.preload(scriptNames(simPos()));
+    timing.cardScripts = performance.now() - t;
+    start();
+  } catch (e) { report('avvio', e); }
+  b.disabled = false; b.textContent = 'Avvia la verifica';
+};
+function start(seed, replay = []) {
+  sim?.destroy();
+  const t = performance.now();
+  sim = new Sim(core, cards, scripts, simPos(), seed);
+  timing.duel = performance.now() - t;
+  history = [];
+  $('#setup').hidden = true; $('#sim').hidden = false;
+  advance(replay);
+}
+/* drive the engine until a question needs a human; `replay` feeds back earlier answers (for undo) */
+function advance(replay = []) {
+  const t = performance.now();
+  for (;;) {
+    const m = sim.next();
+    if (!m) { cur = null; break; }
+    if (m.type === T.SELECT_CHAIN && !m.selects.length && !m.forced) { answer({ type: R.SELECT_CHAIN, index: null }, true); continue; }
+    if (m.type === T.SORT_CHAIN) { answer({ type: R.SORT_CARD, order: null }, true); continue; }
+    if (replay.length) { answer(replay.shift()); continue; }
+    cur = m; break;
+  }
+  timing.step = performance.now() - t;
+  multi = [];
+  render();
+}
+function answer(r, auto) { if (!auto) history.push(r); sim.respond(r); }
+function reply(r) { answer(r); advance(); }
+$('#undo').onclick = () => { if (!history.length) return; const h = history.slice(0, -1), seed = sim.seed; start(seed, h); };
+$('#back').onclick = () => { $('#sim').hidden = true; $('#setup').hidden = false; };
+
+/* ---------- board, log and card details ---------- */
+function render() {
+  const turn = sim.events.filter(e => e.type === T.NEW_TURN).at(-1)?.player;
+  const face = (x, field) => `<button class="c${field && x.position & P.DEFENSE ? ' def' : ''}${field && x.position & P.FACEDOWN ? ' fd' : ''}" data-card="${x.code}" data-atk="${field ? x.attack ?? '' : ''}" data-def="${field ? x.defense ?? '' : ''}" aria-label="${esc(name(x.code))}" style="background-image:url(${IMG(x.code)})"></button>`;
+  const mon = x => { const val = x.position & P.FACEDOWN ? null : x.position & P.DEFENSE ? x.defense : x.attack; return `${face(x, true)}${val != null && val >= 0 ? `<i class="val">${val}</i>` : ''}${x.overlayCards?.length ? `<i class="ov">${x.overlayCards.length}</i>` : ''}`; };
+  $('#board').innerHTML = [1, 0].map(p => {
+    let lp = pos['p' + p].lp ?? 8000;
+    for (const e of sim.events) if (e.player === p) {
+      if (e.type === T.LPUPDATE) lp = e.lp;
+      else if (e.type === T.DAMAGE || e.type === T.PAY_LPCOST) lp = Math.max(0, lp - e.amount);
+      else if (e.type === T.RECOVER) lp += e.amount;
+    }
+    // the query returns one entry per zone, in zone order; empty zones have no code
+    const ms = sim.zone(p, L.MZONE), ss = sim.zone(p, L.SZONE);
+    const slot = (x, cls, content) => `<div class="slot ${cls}">${x?.code ? content(x) : ''}</div>`;
+    const mRow = [0, 1, 2, 3, 4].map(i => slot(ms[i], '', mon)).join('') + slot(ms[5], 'emz', mon) + slot(ms[6], 'emz', mon);
+    const sRow = [0, 1, 2, 3, 4].map(i => slot(ss[i], '', x => face(x, true))).join('') + slot(ss[5], 'fz', x => face(x, true)) + slot(null, '', () => '');
+    const hand = sim.zone(p, L.HAND).filter(c => c?.code);
+    const pile = (loc, label) => {
+      const a = sim.zone(p, loc).filter(c => c?.code), key = `${p}-${loc}`;
+      return a.length ? `<button data-pile="${key}" class="${expanded.has(key) ? 'on' : ''}">${label} ${a.length}</button>` : '';
+    };
+    const lists = [[L.GRAVE, 'Cimitero'], [L.REMOVED, 'Banditi'], [L.EXTRA, 'Extra']].filter(([loc]) => expanded.has(`${p}-${loc}`)).map(([loc, label]) => `<div class="hand"><div class="lbl">${label}</div>${sim.zone(p, loc).filter(c => c?.code).map(x => face(x, false)).join('')}</div>`).join('');
+    return `<div class="side p${p}${turn === p ? ' turn' : ''}"><h4><span>${p ? 'Avversario' : 'Giocatore di turno'}</span><span class="lp">${lp} LP</span></h4>
+      <div class="grid">${p ? sRow + mRow : mRow + sRow}</div>
+      <div class="hand">${hand.length ? `<div class="lbl">Mano · ${hand.length}</div>` : ''}${hand.map(x => face(x, false)).join('')}</div>
+      <div class="piles">${pile(L.GRAVE, 'Cimitero')}${pile(L.REMOVED, 'Banditi')}${pile(L.EXTRA, 'Extra')}<span class="cnt">Deck ${sim.core.duelQueryCount(sim.h, p, L.DECK)}</span></div>${lists}</div>`;
+  }).join('');
+  $('#log').innerHTML = logLines().reverse().map(l => `<div class="${l[1] || ''}">${esc(l[0])}</div>`).join('');
+  renderPrompt();
+  const ms = v => v == null ? '-' : Math.round(v) + ' ms', ignored = ['p0', 'p1'].flatMap(p => Object.keys(ZN).flatMap(z => pos[p][z])).filter(c => !entry(c).id).length;
+  const late = scripts.late.filter(n => !scripts.mem.has(n) || scripts.mem.get(n));
+  $('#diag').innerHTML = (usedFiller.length ? `<div class="note">Deck vuoto riempito con carte segnaposto: ${usedFiller.join(' e ')}.</div>` : '') + (ignored ? `<div class="note">${ignored} carte nascoste non scelte sono rimaste fuori.</div>` : '')
+    + `Tempi: carte ${ms(timing.cards)} · script comuni ${ms(timing.common)} · motore ${ms(timing.wasm)} · script carte ${ms(timing.cardScripts)} · avvio ${ms(timing.duel)} · ultima mossa ${ms(timing.step)}`
+    + (late.length ? `<br>Script scaricati in ritardo: ${esc(late.join(', '))}` : '')
+    + (sim.errors.length ? `<div class="err">Avvisi del motore:\n${esc(sim.errors.slice(-5).join('\n'))}</div>` : '');
+}
+$('#board').addEventListener('click', e => {
+  const p = e.target.closest('[data-pile]');
+  if (p) { const k = p.dataset.pile; if (expanded.has(k)) expanded.delete(k); else expanded.add(k); return render(); }
+  const c = e.target.closest('[data-card]');
+  if (c) showCard(+c.dataset.card, c.dataset.atk, c.dataset.def);
+});
+const textCache = new Map();
+async function showCard(id, atk, def) {
+  const draw = t => { $('#detailBox').innerHTML = `<img src="${IMGL(id)}" alt=""><b>${esc(name(id))}</b><div class="mut sm">${atk ? `Ora ATK ${esc(atk)} / DEF ${esc(def)}` : ''}</div><div class="desc">${esc(t)}</div>`; };
+  draw(textCache.get(id) ?? '');
+  $('#detail').classList.add('on');
+  if (!textCache.has(id)) try {
+    const j = await (await fetch(`${API}?id=${id}`)).json();
+    textCache.set(id, j.data?.[0]?.desc ?? '');
+    if ($('#detail').classList.contains('on')) draw(textCache.get(id));
+  } catch {}
+}
+$('#detail').onclick = () => $('#detail').classList.remove('on');
+
+const pn = p => p ? 'Avversario' : 'Giocatore di turno';
+const LOCN = { [L.DECK]: 'Deck', [L.HAND]: 'mano', [L.MZONE]: 'zona mostri', [L.SZONE]: 'zona M/T', [L.GRAVE]: 'Cimitero', [L.REMOVED]: 'banditi', [L.EXTRA]: 'Extra', [L.OVERLAY]: 'materiali' };
+const PHASE = { 1: 'Draw Phase', 2: 'Standby Phase', 4: 'Main Phase 1', 8: 'Battle Phase', 16: 'Battle Step', 128: 'End Step', 256: 'Main Phase 2', 512: 'End Phase' };
+function logLines() {
+  const out = [];
+  for (const e of sim.events) switch (e.type) {
+    case T.NEW_TURN: out.push([`— Turno di: ${pn(e.player)} —`]); break;
+    case T.NEW_PHASE: if (PHASE[e.phase]) out.push([PHASE[e.phase]]); break;
+    case T.DRAW: out.push([`${pn(e.player)} pesca ${e.drawn.length}`]); break;
+    case T.SUMMONING: out.push([`Normal Summon: ${name(e.code)}`]); break;
+    case T.SPSUMMONING: out.push([`Special Summon: ${name(e.code)}`]); break;
+    case T.FLIPSUMMONING: out.push([`Flip Summon: ${name(e.code)}`]); break;
+    case T.SET: out.push([`Set: ${name(e.code)}`]); break;
+    case T.CHAINING: out.push([`Catena ${e.chain_size}: ${name(e.code)}${effectText(cards, e.description) ? ' — ' + effectText(cards, e.description) : ''}`]); break;
+    case T.CHAIN_NEGATED: out.push([`Attivazione negata (catena ${e.chain_size})`, 'neg']); break;
+    case T.CHAIN_DISABLED: out.push([`Effetto negato (catena ${e.chain_size})`, 'neg']); break;
+    case T.CHAIN_SOLVED: out.push([`Risolta catena ${e.chain_size}`]); break;
+    case T.MOVE: if (e.to.location !== e.from.location && (e.to.location & (L.GRAVE | L.REMOVED | L.HAND | L.DECK | L.EXTRA))) out.push([`${name(e.card)}: ${LOCN[e.from.location] || '?'} → ${LOCN[e.to.location] || '?'}`]); break;
+    case T.DAMAGE: out.push([`${pn(e.player)} subisce ${e.amount}`, 'neg']); break;
+    case T.RECOVER: out.push([`${pn(e.player)} guadagna ${e.amount}`]); break;
+    case T.PAY_LPCOST: out.push([`${pn(e.player)} paga ${e.amount} LP`]); break;
+    case T.ATTACK: out.push([`Attacco${e.target ? '' : ' diretto'}`]); break;
+    case T.WIN: out.push([`Duello finito: vince ${pn(e.player)}`, 'neg']); break;
+    case T.RETRY: out.push(['Il motore ha rifiutato questa scelta: riprova', 'neg']); break;
+  }
+  return out;
+}
+
+/* ---------- prompts: one screen per kind of question ---------- */
+const cardBtn = (i, c, label) => `<button data-a="${i}"><img src="${IMG(c.code)}" alt=""><span>${esc(label)}</span></button>`;
+const textBtn = (i, label, cls = '') => `<button data-a="${i}" class="${cls}">${esc(label)}</button>`;
+function ask(q, html, handlers) {
+  const p = cur?.player;
+  $('#prompt').innerHTML = `${p != null ? `<div class="who" style="color:${p ? 'var(--op)' : 'var(--me)'}">${pn(p)}</div>` : ''}<div class="q">${esc(q)}</div><div class="acts">${html}</div>`;
+  $('#prompt').querySelectorAll('[data-a]').forEach(b => b.onclick = () => { try { handlers[+b.dataset.a](); } catch (e) { report('mossa', e); } });
+}
+/* what the engine says the selection is for: a card string, or a HINTMSG_* constant from constant.lua */
+const HINT_IT = { DESTROY: 'da distruggere', RELEASE: 'da tributare', TRIBUTE: 'da tributare', DISCARD: 'da scartare', TODECK: 'da rimettere nel Deck', TOGRAVE: 'da mandare al Cimitero', REMOVE: 'da bandire', RTOHAND: 'da far tornare in mano', ATOHAND: 'da aggiungere alla mano', SPSUMMON: 'da Evocare Specialmente', SUMMON: 'da Evocare', SET: 'da settare', FACEUP: 'scoperta', FACEDOWN: 'coperta', ATTACKTARGET: "bersaglio dell'attacco", EFFECT: "per l'effetto", TARGET: 'bersaglio', CONTROL: 'di cui prendere il controllo', EQUIP: 'da equipaggiare', SMATERIAL: 'materiale Synchro', XMATERIAL: 'materiale Xyz', LMATERIAL: 'materiale Link', FMATERIAL: 'materiale Fusione', REMOVEXYZ: 'materiale da staccare', DEATTACHFROM: 'da cui staccare', ATTACK: 'in ATK', DEFENSE: 'in DEF', NEGATE: 'da negare', ATTACH: 'da attaccare come materiale' };
+let hintNames = null;
+function hint() {
+  const h = [...sim.events].reverse().find(e => e.type === T.HINT && e.hint_type === 3);
+  if (!h) return '';
+  const fromCard = effectText(cards, h.hint); if (h.hint > 0xffffn && fromCard) return fromCard;
+  if (!hintNames) { hintNames = {}; for (const [, n, v] of (scripts.mem.get('constant.lua') || '').matchAll(/^HINTMSG_([A-Z_0-9]+)\s*=\s*(\d+)/gm)) hintNames[v] = n; }
+  const n = hintNames[String(h.hint)];
+  return n ? `Scegli: ${HINT_IT[n] || n.toLowerCase()}` : '';
+}
+const ATTR_IT = { EARTH: 'Terra', WATER: 'Acqua', FIRE: 'Fuoco', WIND: 'Vento', LIGHT: 'Luce', DARK: 'Oscurità', DIVINE: 'Divino' };
+const keyOf = (obj, v) => Object.keys(obj).find(k => obj[k] === v) || String(v);
+
+/* a card can count for one of two values (low/high 16 bits): which totals can a selection reach? */
+function sumReach(list) {
+  let totals = new Set([0]);
+  for (const c of list) {
+    const a = c.amount & 0xffff, b = c.amount >>> 16, next = new Set();
+    for (const t of totals) { next.add(t + a); if (b) next.add(t + b); }
+    totals = next;
+  }
+  return totals;
+}
+function renderPrompt() {
+  const m = cur;
+  if (!m) { ask('Il duello è finito', '', []); return; }
+  const H = [], push = f => H.push(f) - 1;
+  const effect = c => { const t = effectText(cards, c.description); return t ? `${name(c.code)} — ${t}` : name(c.code); };
+  const pickMany = (list, q, min, max, done, canCancel) => {
+    if (list.length === 1 && min === 1 && max === 1 && !canCancel) return done([0]);
+    if (min === 1 && max === 1) {
+      const html = list.map((c, i) => cardBtn(push(() => done([i])), c, name(c.code)));
+      if (canCancel) html.push(textBtn(push(() => done(null)), 'Annulla'));
+      return ask(q, html.join(''), H);
+    }
+    const draw = () => {
+      const H2 = [], html = list.map((c, i) => `<button data-a="${i}" class="${multi.includes(i) ? 'on' : ''}"><img src="${IMG(c.code)}" alt=""><span>${esc(name(c.code))}</span></button>`);
+      list.forEach((c, i) => H2.push(() => { const k = multi.indexOf(i); if (k >= 0) multi.splice(k, 1); else if (multi.length < max) multi.push(i); draw(); }));
+      const ok = H2.push(() => done([...multi])) - 1;
+      html.push(`<button data-a="${ok}" class="pri"${multi.length < min ? ' disabled' : ''}>Conferma (${multi.length})</button>`);
+      if (canCancel) { const k = H2.push(() => done(null)) - 1; html.push(textBtn(k, 'Annulla')); }
+      ask(q, html.join(''), H2);
+    };
+    draw();
+  };
+  switch (m.type) {
+    case T.SELECT_IDLECMD: {
+      const row = (arr, verb, action) => arr.map((c, i) => cardBtn(push(() => reply({ type: R.SELECT_IDLECMD, action, index: i })), c, `${verb}: ${verb === 'Attiva' ? effect(c) : name(c.code)}`)).join('');
+      let h = row(m.activates, 'Attiva', I.SELECT_ACTIVATE) + row(m.summons, 'Evoca', I.SELECT_SUMMON) + row(m.special_summons, 'Special Summon', I.SELECT_SPECIAL_SUMMON) + row(m.monster_sets, 'Set', I.SELECT_MONSTER_SET) + row(m.spell_sets, 'Set', I.SELECT_SPELL_SET) + row(m.pos_changes, 'Cambia posizione', I.SELECT_POS_CHANGE);
+      if (m.to_bp) h += textBtn(push(() => reply({ type: R.SELECT_IDLECMD, action: I.TO_BP, index: null })), 'Vai alla Battle Phase');
+      if (m.to_ep) h += textBtn(push(() => reply({ type: R.SELECT_IDLECMD, action: I.TO_EP, index: null })), 'Vai alla End Phase');
+      return ask('Main Phase: cosa puoi fare', h, H);
+    }
+    case T.SELECT_BATTLECMD: {
+      let h = m.attacks.map((c, i) => cardBtn(push(() => reply({ type: R.SELECT_BATTLECMD, action: B.SELECT_BATTLE, index: i })), c, `Attacca con ${name(c.code)}`)).join('');
+      h += m.chains.map((c, i) => cardBtn(push(() => reply({ type: R.SELECT_BATTLECMD, action: B.SELECT_CHAIN, index: i })), c, `Attiva: ${effect(c)}`)).join('');
+      if (m.to_m2) h += textBtn(push(() => reply({ type: R.SELECT_BATTLECMD, action: B.TO_M2, index: null })), 'Vai alla Main Phase 2');
+      if (m.to_ep) h += textBtn(push(() => reply({ type: R.SELECT_BATTLECMD, action: B.TO_EP, index: null })), 'Vai alla End Phase');
+      return ask('Battle Phase', h, H);
+    }
+    case T.SELECT_CHAIN: {
+      let h = m.selects.map((c, i) => cardBtn(push(() => reply({ type: R.SELECT_CHAIN, index: i })), c, `Attiva: ${effect(c)}`)).join('');
+      if (!m.forced) h += textBtn(push(() => reply({ type: R.SELECT_CHAIN, index: null })), 'Non attivare');
+      return ask(m.forced ? 'Devi attivare' : 'Vuoi rispondere in catena?', h, H);
+    }
+    case T.SELECT_EFFECTYN: case T.SELECT_YESNO: {
+      const type = m.type === T.SELECT_YESNO ? R.SELECT_YESNO : R.SELECT_EFFECTYN;
+      const t = effectText(cards, m.description), who = m.code ? name(m.code) : '';
+      return ask(`${who}${who && t ? ': ' : ''}${t || (who ? "Attivi l'effetto?" : 'Confermi?')}`, textBtn(push(() => reply({ type, yes: true })), 'Sì') + textBtn(push(() => reply({ type, yes: false })), 'No'), H);
+    }
+    case T.SELECT_OPTION:
+      return ask('Scegli', m.options.map((o, i) => textBtn(push(() => reply({ type: R.SELECT_OPTION, index: i })), effectText(cards, o) || `Opzione ${i + 1}`)).join(''), H);
+    case T.SELECT_CARD:
+      return pickMany(m.selects, hint() || (m.min === m.max ? `Scegli ${m.min} carte` : `Scegli da ${m.min} a ${m.max} carte`), m.min, m.max, ix => reply({ type: R.SELECT_CARD, indicies: ix }), m.can_cancel);
+    case T.SELECT_TRIBUTE:
+      return pickMany(m.selects, hint() || `Scegli i tributi (${m.min}-${m.max})`, m.min, m.max, ix => reply({ type: R.SELECT_TRIBUTE, indicies: ix }), m.can_cancel);
+    case T.SELECT_SUM: {
+      const must = m.selects_must, label = c => { const a = c.amount & 0xffff, b = c.amount >>> 16; return `${name(c.code)} (${b ? `${a} o ${b}` : a})`; };
+      const draw = () => {
+        const H2 = [], chosen = [...must, ...multi.map(i => m.selects[i])], totals = sumReach(chosen);
+        const valid = m.select_max ? [...totals].some(t => t >= m.amount) : totals.has(m.amount);
+        const shown = [...totals].sort((x, y) => x - y).join(' o ');
+        let html = must.map(c => `<button disabled><img src="${IMG(c.code)}" alt=""><span>${esc(label(c))}: obbligatoria</span></button>`).join('');
+        html += m.selects.map((c, i) => { H2.push(() => { const k = multi.indexOf(i); if (k >= 0) multi.splice(k, 1); else multi.push(i); draw(); }); return `<button data-a="${i}" class="${multi.includes(i) ? 'on' : ''}"><img src="${IMG(c.code)}" alt=""><span>${esc(label(c))}</span></button>`; }).join('');
+        const ok = H2.push(() => reply({ type: R.SELECT_SUM, indicies: [...multi] })) - 1;
+        html += `<button data-a="${ok}" class="pri"${valid ? '' : ' disabled'}>Conferma (totale ${shown})</button>`;
+        ask(`${hint() || 'Scegli le carte'}: totale ${m.select_max ? 'almeno ' : ''}${m.amount}`, html, H2);
+      };
+      return draw();
+    }
+    case T.SELECT_UNSELECT_CARD: {
+      let h = m.select_cards.map((c, i) => cardBtn(push(() => reply({ type: R.SELECT_UNSELECT_CARD, index: i })), c, name(c.code))).join('');
+      h += m.unselect_cards.map((c, i) => cardBtn(push(() => reply({ type: R.SELECT_UNSELECT_CARD, index: m.select_cards.length + i })), c, `Togli: ${name(c.code)}`)).join('');
+      if (m.can_finish || m.can_cancel) h += textBtn(push(() => reply({ type: R.SELECT_UNSELECT_CARD, index: null })), m.can_finish ? 'Fine' : 'Annulla');
+      return ask(hint() || `Scegli le carte (${m.min}-${m.max})`, h, H);
+    }
+    case T.SELECT_PLACE: case T.SELECT_DISFIELD: {
+      const places = freePlaces(m), type = m.type === T.SELECT_PLACE ? R.SELECT_PLACE : R.SELECT_DISFIELD;
+      if (places.length === 1 || (type === R.SELECT_PLACE && m.count === 1 && places[0].player === m.player)) return reply({ type, places: places.slice(0, m.count) });
+      return ask(type === R.SELECT_PLACE ? 'Scegli la zona' : 'Scegli la zona da bloccare', places.map(z => textBtn(push(() => reply({ type, places: [z] })), `${pn(z.player)} · ${z.location === L.MZONE ? 'Mostri' : 'M/T'} ${z.sequence + 1}`)).join(''), H);
+    }
+    case T.SELECT_POSITION: {
+      const opts = ocgPositionParse(m.positions), label = { 1: 'ATK', 2: 'ATK coperto', 4: 'DEF', 8: 'DEF coperto' };
+      if (opts.length === 1) return reply({ type: R.SELECT_POSITION, position: opts[0] });
+      return ask(`Posizione di ${name(m.code)}`, opts.map(o => textBtn(push(() => reply({ type: R.SELECT_POSITION, position: o })), label[o])).join(''), H);
+    }
+    case T.SELECT_COUNTER: {
+      const counters = m.cards.map(() => 0);
+      const draw = () => {
+        const total = counters.reduce((a, b) => a + b, 0), H2 = [];
+        let html = m.cards.map((c, i) => {
+          const minus = H2.push(() => { if (counters[i] > 0) { counters[i]--; draw(); } }) - 1, plus = H2.push(() => { if (counters[i] < c.count && total < m.count) { counters[i]++; draw(); } }) - 1;
+          return `<div class="stp"><img src="${IMG(c.code)}" alt=""><span>${esc(name(c.code))} (${c.count})</span><button data-a="${minus}">−</button><b>${counters[i]}</b><button data-a="${plus}">+</button></div>`;
+        }).join('');
+        const ok = H2.push(() => reply({ type: R.SELECT_COUNTER, counters: [...counters] })) - 1;
+        html += `<button data-a="${ok}" class="pri"${total === m.count ? '' : ' disabled'}>Conferma (${total}/${m.count})</button>`;
+        ask(`Togli ${m.count} segnalini`, html, H2);
+      };
+      return draw();
+    }
+    case T.ANNOUNCE_NUMBER:
+      return ask('Dichiara un numero', m.options.map((o, i) => textBtn(push(() => reply({ type: R.ANNOUNCE_NUMBER, value: i })), String(o))).join(''), H);
+    case T.ANNOUNCE_CARD: {
+      const accept = id => { const d = cardData(cards, id); return d && !d.alias && cardMatchesOpcode(d, m.opcodes); };
+      ask('Dichiara una carta', '<input id="annQ" placeholder="Scrivi il nome" autocomplete="off"><div id="annR" class="acts" style="margin-top:5px"></div>', []);
+      $('#annQ').oninput = e => {
+        const hits = searchCards(e.target.value, accept, 10);
+        $('#annR').innerHTML = hits.map(id => `<button data-c="${id}"><img src="${IMG(id)}" alt=""><span>${esc(name(id))}</span></button>`).join('') || (e.target.value.trim().length < 2 ? '' : '<span class="mut sm">Nessuna carta dichiarabile</span>');
+        $('#annR').querySelectorAll('[data-c]').forEach(b => b.onclick = () => reply({ type: R.ANNOUNCE_CARD, card: +b.dataset.c }));
+      };
+      return;
+    }
+    case T.ANNOUNCE_RACE: case T.ANNOUNCE_ATTRIB: {
+      const race = m.type === T.ANNOUNCE_RACE, opts = race ? ocgRaceParse(m.available) : ocgAttributeParse(m.available);
+      const labelOf = v => race ? keyOf(OcgRace, v) : (ATTR_IT[keyOf(OcgAttribute, v)] || keyOf(OcgAttribute, v));
+      const done = vals => reply(race ? { type: R.ANNOUNCE_RACE, races: vals } : { type: R.ANNOUNCE_ATTRIB, attributes: vals });
+      const draw = () => {
+        const H2 = [], html = opts.map((v, i) => { H2.push(() => { const k = multi.indexOf(i); if (k >= 0) multi.splice(k, 1); else if (multi.length < m.count) multi.push(i); draw(); }); return textBtn(i, labelOf(v), multi.includes(i) ? 'on' : ''); });
+        const ok = H2.push(() => done(multi.map(i => opts[i]))) - 1;
+        html.push(`<button data-a="${ok}" class="pri"${multi.length === m.count ? '' : ' disabled'}>Conferma (${multi.length}/${m.count})</button>`);
+        ask(race ? 'Dichiara un Tipo' : 'Dichiara un Attributo', html.join(''), H2);
+      };
+      return draw();
+    }
+    case T.SORT_CARD: {
+      // order[i] = position given to card i; first tap goes first
+      const draw = () => {
+        const H2 = [], html = m.cards.map((c, i) => { const n = multi.indexOf(i); H2.push(() => { if (n >= 0) multi.splice(n, 1); else multi.push(i); draw(); }); return `<button data-a="${i}" class="${n >= 0 ? 'on' : ''}"><img src="${IMG(c.code)}" alt=""><span>${n >= 0 ? `${n + 1}. ` : ''}${esc(name(c.code))}</span></button>`; });
+        const ok = H2.push(() => reply({ type: R.SORT_CARD, order: m.cards.map((_, i) => multi.indexOf(i)) })) - 1;
+        const dflt = H2.push(() => reply({ type: R.SORT_CARD, order: null })) - 1;
+        html.push(`<button data-a="${ok}" class="pri"${multi.length === m.cards.length ? '' : ' disabled'}>Conferma ordine</button>`, textBtn(dflt, 'Ordine predefinito'));
+        ask("Tocca le carte nell'ordine che vuoi", html.join(''), H2);
+      };
+      return draw();
+    }
+    case T.ROCK_PAPER_SCISSORS:
+      return ask('Sasso, carta, forbice', ['Forbice', 'Sasso', 'Carta'].map((n, i) => textBtn(push(() => reply({ type: R.ROCK_PAPER_SCISSORS, value: i + 1 })), n)).join(''), H);
+    default:
+      ask(`Domanda non gestita: ${T[m.type]}`, '', []);
+  }
+}
+
+/* ---------- boot ---------- */
+$('#go').disabled = true; $('#go').textContent = 'Carico il motore…';
+const t0 = performance.now();
+loadAll().then(() => {
+  $('#go').disabled = false; $('#go').textContent = 'Avvia la verifica';
+  $('#stat').textContent = `Motore pronto in ${((performance.now() - t0) / 1000).toFixed(1)} s`;
+  renderPos();
+  if (params.get('from') === 'duel') importDuel();
+}).catch(e => { $('#go').textContent = 'Errore di caricamento'; report('caricamento', e); });
+</script>
+</body>
+</html>
